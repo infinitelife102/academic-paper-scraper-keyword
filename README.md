@@ -271,6 +271,46 @@ This actor works as an MCP tool via Apify's hosted MCP server. AI agents can que
 
 ---
 
+## Local archive (`scripts/collect_papers.py`)
+
+This script is separate from the Apify actor. It searches OpenAlex for open-access papers published since 2015, newest first, then downloads each PDF from the publisher or repository URL OpenAlex returns. It does not call Semantic Scholar or arXiv, and it does not read the actor's `apiKey`.
+
+Three topics are built in: `hydro-thermal`, `rice-wheat`, and `dairy`. A topic stops after 1,500 saved PDFs, then the next topic starts. A failed PDF does not stop the run. If the date folder created for that paper is empty, it is removed.
+
+```powershell
+python scripts/collect_papers.py
+python scripts/collect_papers.py --status
+python scripts/collect_papers.py --topic hydro-thermal --per-topic 1500
+```
+
+Files land on `D:\` in a folder named with today's date plus `_paper`:
+
+```text
+D:\2026-09-29_paper\
+  hydro-thermal\
+    2024_06\
+      01\
+        W4399703190.pdf
+        W4399703190.json
+  rice-wheat\
+  dairy\
+  status.json
+```
+
+The file name is the OpenAlex work id (`W` plus digits), which is unique per paper. DOI stays inside the JSON because it contains slashes. `status.json` records search progress after every paper. Run the same command again to continue after a stop or a network drop. `--status` prints how many papers each topic has and the publication-date range already saved.
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--dest` | `D:\<today>_paper` | Archive folder |
+| `--per-topic` | `1500` | Saved PDFs per topic before moving on |
+| `--topic` | all three | Repeat to select `hydro-thermal`, `rice-wheat`, or `dairy` |
+| `--max-queries` | all queries | Use only the first N queries of each topic |
+| `--status` | off | Print progress and exit |
+
+OpenAlex answers without a key for short runs. A free key from [openalex.org/settings/api](https://openalex.org/settings/api) includes $1 of usage per day; this script does not send that key yet. Keyword search is about $0.001 per page. PDFs are fetched from the linked host, not from OpenAlex's paid content download.
+
+---
+
 ## Technical details
 
 - Python 3.12, async with `httpx.AsyncClient`
